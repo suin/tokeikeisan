@@ -135,6 +135,11 @@
       background-color: #2563eb;
     }
 
+    .dial-btn.pressed:not(:disabled) {
+      background-color: #2563eb;
+      transform: scale(0.95);
+    }
+
     .dial-btn:disabled {
       background-color: #9ca3af;
       cursor: not-allowed;
@@ -343,6 +348,14 @@
     const btnHourMinus = document.getElementById('diff-hour-minus');
     const btnMinPlus = document.getElementById('diff-min-plus');
     const btnMinMinus = document.getElementById('diff-min-minus');
+
+    // 長押し管理用の変数
+    let longPressIntervals = {
+      hourPlus: null,
+      hourMinus: null,
+      minPlus: null,
+      minMinus: null
+    };
 
     const showAttemptButton = document.getElementById('show-attempt-button');
     const checkButton = document.getElementById('check-button');
@@ -585,30 +598,138 @@
     function handleUserDiffChange() { updateDisplays(); updateDialButtonsState(); }
     function getMinuteStep() { if (currentMode === 'easy') return 15; if (currentMode === 'normal') return 5; return 1; }
 
-    btnHourPlus.addEventListener('click', () => {
+    // 長押し開始関数
+    function startLongPress(button, action) {
+      if (button.disabled) return null;
+
+      // 即座に1回実行
+      action();
+
+      // 視覚的フィードバック
+      button.classList.add('pressed');
+
+      // 0.2秒ごとに実行
+      return setInterval(() => {
+        if (button.disabled) {
+          // ボタンが無効化された場合は停止
+          stopLongPress(button, longPressIntervals[button.id.replace('diff-', '').replace('-', '')]);
+          return;
+        }
+        action();
+      }, 200);
+    }
+
+    // 長押し終了関数
+    function stopLongPress(button, intervalId) {
+      if (intervalId) {
+        clearInterval(intervalId);
+        button.classList.remove('pressed');
+        return null;
+      }
+      return intervalId;
+    }
+
+    // 時間増加ボタンの処理
+    function increaseHour() {
       const maxUserDiffTotalMinutes = getMaxUserDiffTotalMinutes();
       if (userDiff.h < 11 && (userDiff.h + 1) * 60 + userDiff.m <= maxUserDiffTotalMinutes) {
         userDiff.h++;
+        handleUserDiffChange();
       }
-      handleUserDiffChange();
-    });
-    btnHourMinus.addEventListener('click', () => {
+    }
+
+    // 時間減少ボタンの処理
+    function decreaseHour() {
       if (userDiff.h > 0) {
         userDiff.h--;
+        handleUserDiffChange();
       }
-      handleUserDiffChange();
-    });
+    }
 
-    btnMinPlus.addEventListener('click', () => {
+    // 分増加ボタンの処理
+    function increaseMinute() {
       const step = getMinuteStep();
       userDiff.m = (userDiff.m + step) % 60;
       handleUserDiffChange();
-    });
+    }
 
-    btnMinMinus.addEventListener('click', () => {
+    // 分減少ボタンの処理
+    function decreaseMinute() {
       const step = getMinuteStep();
       userDiff.m = (userDiff.m - step + 60) % 60;
       handleUserDiffChange();
+    }
+
+    // 時間増加ボタンのイベント
+    btnHourPlus.addEventListener('mousedown', () => {
+      longPressIntervals.hourPlus = startLongPress(btnHourPlus, increaseHour);
+    });
+    btnHourPlus.addEventListener('touchstart', (e) => {
+      e.preventDefault(); // デフォルトの動作を防止
+      longPressIntervals.hourPlus = startLongPress(btnHourPlus, increaseHour);
+    });
+    btnHourPlus.addEventListener('mouseup', () => {
+      longPressIntervals.hourPlus = stopLongPress(btnHourPlus, longPressIntervals.hourPlus);
+    });
+    btnHourPlus.addEventListener('touchend', () => {
+      longPressIntervals.hourPlus = stopLongPress(btnHourPlus, longPressIntervals.hourPlus);
+    });
+    btnHourPlus.addEventListener('mouseleave', () => {
+      longPressIntervals.hourPlus = stopLongPress(btnHourPlus, longPressIntervals.hourPlus);
+    });
+
+    // 時間減少ボタンのイベント
+    btnHourMinus.addEventListener('mousedown', () => {
+      longPressIntervals.hourMinus = startLongPress(btnHourMinus, decreaseHour);
+    });
+    btnHourMinus.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      longPressIntervals.hourMinus = startLongPress(btnHourMinus, decreaseHour);
+    });
+    btnHourMinus.addEventListener('mouseup', () => {
+      longPressIntervals.hourMinus = stopLongPress(btnHourMinus, longPressIntervals.hourMinus);
+    });
+    btnHourMinus.addEventListener('touchend', () => {
+      longPressIntervals.hourMinus = stopLongPress(btnHourMinus, longPressIntervals.hourMinus);
+    });
+    btnHourMinus.addEventListener('mouseleave', () => {
+      longPressIntervals.hourMinus = stopLongPress(btnHourMinus, longPressIntervals.hourMinus);
+    });
+
+    // 分増加ボタンのイベント
+    btnMinPlus.addEventListener('mousedown', () => {
+      longPressIntervals.minPlus = startLongPress(btnMinPlus, increaseMinute);
+    });
+    btnMinPlus.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      longPressIntervals.minPlus = startLongPress(btnMinPlus, increaseMinute);
+    });
+    btnMinPlus.addEventListener('mouseup', () => {
+      longPressIntervals.minPlus = stopLongPress(btnMinPlus, longPressIntervals.minPlus);
+    });
+    btnMinPlus.addEventListener('touchend', () => {
+      longPressIntervals.minPlus = stopLongPress(btnMinPlus, longPressIntervals.minPlus);
+    });
+    btnMinPlus.addEventListener('mouseleave', () => {
+      longPressIntervals.minPlus = stopLongPress(btnMinPlus, longPressIntervals.minPlus);
+    });
+
+    // 分減少ボタンのイベント
+    btnMinMinus.addEventListener('mousedown', () => {
+      longPressIntervals.minMinus = startLongPress(btnMinMinus, decreaseMinute);
+    });
+    btnMinMinus.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      longPressIntervals.minMinus = startLongPress(btnMinMinus, decreaseMinute);
+    });
+    btnMinMinus.addEventListener('mouseup', () => {
+      longPressIntervals.minMinus = stopLongPress(btnMinMinus, longPressIntervals.minMinus);
+    });
+    btnMinMinus.addEventListener('touchend', () => {
+      longPressIntervals.minMinus = stopLongPress(btnMinMinus, longPressIntervals.minMinus);
+    });
+    btnMinMinus.addEventListener('mouseleave', () => {
+      longPressIntervals.minMinus = stopLongPress(btnMinMinus, longPressIntervals.minMinus);
     });
 
     showAttemptButton.addEventListener('mousedown', () => { showAttemptHands = true; updateDisplays(); });
