@@ -278,6 +278,47 @@
         font-size: 0.9rem;
       }
     }
+
+    /* 数値アニメーション用のスタイル - 修正版 */
+    @keyframes scaleAnimation {
+      0% {
+        transform: scale(1);
+      }
+
+      50% {
+        transform: scale(1.5);
+      }
+
+      100% {
+        transform: scale(1);
+      }
+    }
+
+    /* アニメーションクラス - 個別プロパティで明示的に指定 */
+    .number-animate {
+      display: inline-block;
+      transform-origin: center;
+      will-change: transform;
+      color: #0284c7;
+
+      /* アニメーションプロパティを個別に指定 - スピードアップ */
+      animation-name: scaleAnimation;
+      animation-duration: 0.3s;
+      /* 0.5秒から0.3秒に短縮 */
+      animation-timing-function: ease-out;
+      animation-fill-mode: forwards;
+      animation-iteration-count: 1;
+      animation-delay: 0s;
+      animation-direction: normal;
+      animation-play-state: running;
+    }
+
+    /* アクセシビリティ対応 */
+    @media (prefers-reduced-motion: reduce) {
+      .number-animate {
+        animation: none;
+      }
+    }
   </style>
 </head>
 
@@ -317,13 +358,13 @@
       <div class="dial-control flex items-center justify-center mb-2">
         <span class="mr-2 text-lg text-slate-700" data-lang-key="time_label">時間:</span>
         <button class="dial-btn" id="diff-hour-minus">-</button>
-        <span id="diff-hour-display" class="mx-2 text-xl font-bold text-sky-600">0</span>
+        <span id="diff-hour-display" class="mx-2 text-xl font-bold text-sky-600" style="display: inline-block;">0</span>
         <button class="dial-btn" id="diff-hour-plus">+</button>
       </div>
       <div class="dial-control flex items-center justify-center">
         <span class="mr-2 text-lg text-slate-700" data-lang-key="minute_label">分:</span>
         <button class="dial-btn" id="diff-min-minus">-</button>
-        <span id="diff-min-display" class="mx-2 text-xl font-bold text-sky-600">0</span>
+        <span id="diff-min-display" class="mx-2 text-xl font-bold text-sky-600" style="display: inline-block;">0</span>
         <button class="dial-btn" id="diff-min-plus">+</button>
       </div>
     </div>
@@ -351,6 +392,10 @@
 
     const diffHourDisplay = document.getElementById('diff-hour-display');
     const diffMinDisplay = document.getElementById('diff-min-display');
+
+    // アニメーション用の変数
+    let hourAnimationTimeout = null;
+    let minAnimationTimeout = null;
 
     const btnHourPlus = document.getElementById('diff-hour-plus');
     const btnHourMinus = document.getElementById('diff-hour-minus');
@@ -561,6 +606,78 @@
       updateDisplays(); updateDialButtonsState();
     }
 
+    // 数値にアニメーションを適用する関数 - JavaScriptで直接スタイルを操作する方法
+    function animateNumberElement(element, newValue, isLongPress = false) {
+      // 現在の値と新しい値が異なる場合のみアニメーション
+      if (element.textContent !== newValue.toString()) {
+        // 既存のアニメーションタイムアウトをクリア
+        const timeoutVar = element === diffHourDisplay ? hourAnimationTimeout : minAnimationTimeout;
+        if (timeoutVar) {
+          clearTimeout(timeoutVar);
+        }
+
+        // 値を更新
+        element.textContent = newValue;
+
+        // 長押し時は簡易アニメーション（色変更のみ）、通常時は拡大縮小アニメーション
+        if (isLongPress) {
+          // 長押し時は色変更のみの簡易アニメーション
+          element.style.color = '#0284c7'; // 青色に変更
+
+          // 短い時間で元の色に戻す
+          const newTimeout = setTimeout(() => {
+            element.style.color = '#0f172a';
+          }, 100);
+
+          // タイムアウト参照を保存
+          if (element === diffHourDisplay) {
+            hourAnimationTimeout = newTimeout;
+          } else {
+            minAnimationTimeout = newTimeout;
+          }
+        } else {
+          // 通常クリック時は完全なアニメーション
+          // 色を変更
+          const originalColor = element.style.color || '#0f172a';
+          element.style.color = '#0284c7'; // 青色に変更
+
+          // JavaScriptでアニメーションを直接適用
+          element.style.transition = 'none';
+          element.style.transform = 'scale(1)';
+
+          // 強制的にリフロー（再描画）を発生させる
+          void element.offsetWidth;
+
+          // アニメーションを適用
+          element.style.transition = 'transform 0.3s ease-out, color 0.3s ease-out';
+          element.style.transform = 'scale(1.5)';
+
+          // 拡大後、元のサイズに戻す
+          setTimeout(() => {
+            element.style.transform = 'scale(1)';
+          }, 150);
+
+          // アニメーション終了後に元の色に戻す
+          const newTimeout = setTimeout(() => {
+            element.style.color = originalColor;
+            element.style.transition = 'none';
+          }, 350);
+
+          // タイムアウト参照を保存
+          if (element === diffHourDisplay) {
+            hourAnimationTimeout = newTimeout;
+          } else {
+            minAnimationTimeout = newTimeout;
+          }
+        }
+
+        // タイムアウト参照は上記の条件分岐内ですでに保存されているので、ここでは不要
+
+        // デバッグ用：アニメーションが適用されたことをコンソールに出力
+        console.log(`Animating ${element.id} to ${newValue} with direct style manipulation`);
+      }
+    }
+
     function updateDisplays() {
       let time1DisplayHourAMPM = time1.h;
       clock1TimeDisplay.textContent = formatTimeForDisplayAMPM(time1DisplayHourAMPM, time1.m);
@@ -570,7 +687,9 @@
       let time2MinuteOfDay = time2AbsoluteMinutes % 60;
       clock2TimeDisplay.textContent = formatTimeForDisplayAMPM(time2HourOfDay, time2MinuteOfDay);
 
-      diffHourDisplay.textContent = userDiff.h; diffMinDisplay.textContent = userDiff.m;
+      // アニメーション付きで数値を更新
+      animateNumberElement(diffHourDisplay, userDiff.h);
+      animateNumberElement(diffMinDisplay, userDiff.m);
       drawClock(clock1Ctx, clock1Canvas, time1.h, time1.m, '#1e293b');
       const targetHourForHands = time2.h; const targetMinuteForHands = time2.m;
       let userAttemptTotalMinutes = (time1.h * 60 + time1.m) + (userDiff.h * 60 + userDiff.m);
@@ -604,27 +723,46 @@
     }
 
     function handleUserDiffChange() { updateDisplays(); updateDialButtonsState(); }
+
+    // 長押しフラグ付きの表示更新関数
+    function updateDisplaysWithLongPress(isLongPress) {
+      // アニメーション付きで数値を更新（長押しフラグ付き）
+      animateNumberElement(diffHourDisplay, userDiff.h, isLongPress);
+      animateNumberElement(diffMinDisplay, userDiff.m, isLongPress);
+
+      // 時計の描画
+      drawClock(clock1Ctx, clock1Canvas, time1.h, time1.m, '#1e293b');
+      const targetHourForHands = time2.h; const targetMinuteForHands = time2.m;
+      let userAttemptTotalMinutes = (time1.h * 60 + time1.m) + (userDiff.h * 60 + userDiff.m);
+      let userAttemptHourForHands = Math.floor(userAttemptTotalMinutes / 60) % 12;
+      let userAttemptMinuteForHands = userAttemptTotalMinutes % 60;
+      drawClock(clock2Ctx, clock2Canvas, targetHourForHands, targetMinuteForHands, '#1e293b', userAttemptHourForHands, userAttemptMinuteForHands, '#38bdf8');
+
+      // ボタン状態の更新
+      updateDialButtonsState();
+    }
     function getMinuteStep() { if (currentMode === 'easy') return 15; if (currentMode === 'normal') return 5; return 1; }
 
     // 長押し開始関数
     function startLongPress(button, action) {
       if (button.disabled) return null;
 
-      // 即座に1回実行
-      action();
+      // 即座に1回実行（通常クリック時のアニメーション）
+      action(false);
 
       // 視覚的フィードバック
       button.classList.add('pressed');
 
-      // 0.2秒ごとに実行
+      // アニメーションの持続時間と同じ間隔で実行
       return setInterval(() => {
         if (button.disabled) {
           // ボタンが無効化された場合は停止
           stopLongPress(button, longPressIntervals[button.id.replace('diff-', '').replace('-', '')]);
           return;
         }
-        action();
-      }, 200);
+        // 長押し時は簡易アニメーション（isLongPress = true）
+        action(true);
+      }, 175); // 長押し時の数値増減スピードを倍速に（350msから175msに短縮）
     }
 
     // 長押し終了関数
@@ -638,34 +776,35 @@
     }
 
     // 時間増加ボタンの処理
-    function increaseHour() {
+    function increaseHour(isLongPress = false) {
       const maxUserDiffTotalMinutes = getMaxUserDiffTotalMinutes();
       if (userDiff.h < 11 && (userDiff.h + 1) * 60 + userDiff.m <= maxUserDiffTotalMinutes) {
         userDiff.h++;
-        handleUserDiffChange();
+        // 長押しフラグを渡す
+        updateDisplaysWithLongPress(isLongPress);
       }
     }
 
     // 時間減少ボタンの処理
-    function decreaseHour() {
+    function decreaseHour(isLongPress = false) {
       if (userDiff.h > 0) {
         userDiff.h--;
-        handleUserDiffChange();
+        updateDisplaysWithLongPress(isLongPress);
       }
     }
 
     // 分増加ボタンの処理
-    function increaseMinute() {
+    function increaseMinute(isLongPress = false) {
       const step = getMinuteStep();
       userDiff.m = (userDiff.m + step) % 60;
-      handleUserDiffChange();
+      updateDisplaysWithLongPress(isLongPress);
     }
 
     // 分減少ボタンの処理
-    function decreaseMinute() {
+    function decreaseMinute(isLongPress = false) {
       const step = getMinuteStep();
       userDiff.m = (userDiff.m - step + 60) % 60;
-      handleUserDiffChange();
+      updateDisplaysWithLongPress(isLongPress);
     }
 
     // 時間増加ボタンのイベント
