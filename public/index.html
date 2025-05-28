@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>時計の差 トレーニング</title>
 
   <!-- ファビコン -->
@@ -37,6 +37,21 @@
       margin: 0;
       padding: 1rem;
       overflow-x: hidden;
+      /* iOS Safari ダブルタップ拡大防止 */
+      touch-action: manipulation;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+    }
+
+    /* インタラクティブ要素のダブルタップ拡大防止 */
+    button,
+    .dial-btn,
+    .mode-btn,
+    .action-button,
+    .lang-toggle-btn,
+    canvas,
+    .clock-canvas {
+      touch-action: manipulation;
     }
 
     .app-container {
