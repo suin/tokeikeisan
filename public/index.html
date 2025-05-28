@@ -427,6 +427,18 @@
     const confettiColors = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#3b82f6", "#8b5cf6", "#ec4899"];
     let confettiAnimationId;
 
+    // 時計の針の色の定義
+    const CLOCK_COLORS = {
+      normal: {
+        hour: '#dc2626',   // 濃い赤
+        minute: '#1e40af'  // 濃い青
+      },
+      overlay: {
+        hour: '#f87171',   // 明るい赤
+        minute: '#60a5fa'  // 明るい青
+      }
+    };
+
     let currentMode = 'easy';
     let currentLanguage = 'kanji'; // 'kanji' or 'hiragana'
     let time1 = { h: 0, m: 0 };
@@ -524,7 +536,7 @@
     window.addEventListener('resize', () => { resizeConfettiCanvas(); setCanvasSize(); });
     resizeConfettiCanvas(); setCanvasSize();
 
-    function drawClock(ctx, canvas, hour, minute, handColor, hour2, minute2, hand2Color) {
+    function drawClock(ctx, canvas, hour, minute, hour2, minute2) {
       const radius = canvas.height / 2 * 0.9; const centerX = canvas.width / 2; const centerY = canvas.height / 2;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.beginPath(); ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
@@ -549,21 +561,28 @@
         ctx.lineWidth = Math.max(0.5, radius * 0.006); ctx.strokeStyle = '#64748b'; ctx.stroke(); ctx.closePath();
       }
       if (hour !== undefined && minute !== undefined) {
-        drawHand(ctx, centerX, centerY, radius, hour, minute, handColor || '#1e293b');
+        // 通常の針を描画（濃い赤と濃い青）
+        drawHand(ctx, centerX, centerY, radius, hour, minute,
+          CLOCK_COLORS.normal.hour, CLOCK_COLORS.normal.minute, false);
       }
       if (showAttemptHands && hour2 !== undefined && minute2 !== undefined) {
-        drawHand(ctx, centerX, centerY, radius, hour2, minute2, hand2Color || '#38bdf8', true);
+        // オーバーレイの針を描画（明るい赤と明るい青）
+        drawHand(ctx, centerX, centerY, radius, hour2, minute2,
+          CLOCK_COLORS.overlay.hour, CLOCK_COLORS.overlay.minute, true);
       }
     }
 
-    function drawHand(ctx, cx, cy, r, h, m, color, isOverlay = false) {
+    function drawHand(ctx, cx, cy, r, h, m, hourColor, minuteColor, isOverlay = false) {
+      // 短針（時針）の描画
       let hourAngle = (((h % 12) + m / 60) * 30 - 90) * Math.PI / 180;
       ctx.beginPath(); ctx.lineWidth = isOverlay ? Math.max(1.5, r * 0.06) : Math.max(2, r * 0.07);
-      ctx.lineCap = 'round'; ctx.strokeStyle = color; ctx.moveTo(cx, cy);
+      ctx.lineCap = 'round'; ctx.strokeStyle = hourColor; ctx.moveTo(cx, cy);
       ctx.lineTo(cx + r * 0.5 * Math.cos(hourAngle), cy + r * 0.5 * Math.sin(hourAngle)); ctx.stroke(); ctx.closePath();
+
+      // 長針（分針）の描画
       let minuteAngle = (m * 6 - 90) * Math.PI / 180;
       ctx.beginPath(); ctx.lineWidth = isOverlay ? Math.max(1, r * 0.04) : Math.max(1.5, r * 0.05);
-      ctx.lineCap = 'round'; ctx.strokeStyle = color; ctx.moveTo(cx, cy);
+      ctx.lineCap = 'round'; ctx.strokeStyle = minuteColor; ctx.moveTo(cx, cy);
       ctx.lineTo(cx + r * 0.75 * Math.cos(minuteAngle), cy + r * 0.75 * Math.sin(minuteAngle)); ctx.stroke(); ctx.closePath();
     }
 
@@ -690,12 +709,18 @@
       // アニメーション付きで数値を更新
       animateNumberElement(diffHourDisplay, userDiff.h);
       animateNumberElement(diffMinDisplay, userDiff.m);
-      drawClock(clock1Ctx, clock1Canvas, time1.h, time1.m, '#1e293b');
-      const targetHourForHands = time2.h; const targetMinuteForHands = time2.m;
+
+      // 時計1の描画
+      drawClock(clock1Ctx, clock1Canvas, time1.h, time1.m);
+
+      // 時計2の描画（ユーザーの試行も含む）
+      const targetHourForHands = time2.h;
+      const targetMinuteForHands = time2.m;
       let userAttemptTotalMinutes = (time1.h * 60 + time1.m) + (userDiff.h * 60 + userDiff.m);
       let userAttemptHourForHands = Math.floor(userAttemptTotalMinutes / 60) % 12;
       let userAttemptMinuteForHands = userAttemptTotalMinutes % 60;
-      drawClock(clock2Ctx, clock2Canvas, targetHourForHands, targetMinuteForHands, '#1e293b', userAttemptHourForHands, userAttemptMinuteForHands, '#38bdf8');
+      drawClock(clock2Ctx, clock2Canvas, targetHourForHands, targetMinuteForHands,
+        userAttemptHourForHands, userAttemptMinuteForHands);
     }
 
     // Helper function to get current maxUserDiffTotalMinutes based on actualTotalDiffMinutes
@@ -731,12 +756,14 @@
       animateNumberElement(diffMinDisplay, userDiff.m, isLongPress);
 
       // 時計の描画
-      drawClock(clock1Ctx, clock1Canvas, time1.h, time1.m, '#1e293b');
-      const targetHourForHands = time2.h; const targetMinuteForHands = time2.m;
+      drawClock(clock1Ctx, clock1Canvas, time1.h, time1.m);
+      const targetHourForHands = time2.h;
+      const targetMinuteForHands = time2.m;
       let userAttemptTotalMinutes = (time1.h * 60 + time1.m) + (userDiff.h * 60 + userDiff.m);
       let userAttemptHourForHands = Math.floor(userAttemptTotalMinutes / 60) % 12;
       let userAttemptMinuteForHands = userAttemptTotalMinutes % 60;
-      drawClock(clock2Ctx, clock2Canvas, targetHourForHands, targetMinuteForHands, '#1e293b', userAttemptHourForHands, userAttemptMinuteForHands, '#38bdf8');
+      drawClock(clock2Ctx, clock2Canvas, targetHourForHands, targetMinuteForHands,
+        userAttemptHourForHands, userAttemptMinuteForHands);
 
       // ボタン状態の更新
       updateDialButtonsState();
