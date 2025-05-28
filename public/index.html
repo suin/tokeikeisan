@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>時計の差 トレーニング</title>
+
+  <!-- ファビコン -->
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="favicon.png" type="image/png">
+
+  <!-- iOS ホーム画面対応 -->
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="時計トレーニング">
+
+  <!-- PWA対応 -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#3b82f6">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'M PLUS Rounded 1c', sans-serif;
+      background-color: #f0f9ff;
+      /* Tailwind bg-sky-100 */
+      color: #0f172a;
+      /* Tailwind text-slate-900 */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 1rem;
+      overflow-x: hidden;
+    }
+
+    .app-container {
+      background-color: #ffffff;
+      padding: 1.5rem;
+      /* p-6 */
+      border-radius: 1rem;
+      /* rounded-xl */
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      /* shadow-lg */
+      width: 100%;
+      max-width: 600px;
+      text-align: center;
+      position: relative;
+      /* For positioning the toggle button */
+    }
+
+    .language-toggle-container {
+      position: absolute;
+      top: 1rem;
+      /* Tailwind top-4 */
+      right: 1rem;
+      /* Tailwind right-4 */
+    }
+
+    .lang-toggle-btn {
+      background-color: #64748b;
+      /* Tailwind bg-slate-500 */
+      color: white;
+      font-weight: bold;
+      padding: 0.3rem 0.6rem;
+      /* py-1 px-2 */
+      border-radius: 0.375rem;
+      /* rounded-md */
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      font-size: 0.9rem;
+    }
+
+    .lang-toggle-btn:hover {
+      background-color: #475569;
+      /* Tailwind bg-slate-600 */
+    }
+
+    .clock-canvas-container {
+      width: 180px;
+      height: 180px;
+      margin: 0.25rem auto;
+    }
+
+    .clock-canvas {
+      border-radius: 50%;
+      background-color: #f8fafc;
+      border: 4px solid #cbd5e1;
+      display: block;
+    }
+
+    .time-display-text {
+      font-size: 0.9rem;
+      color: #334155;
+      margin-top: 0.75rem;
+      /* Increased space: Tailwind mt-3 */
+      min-height: 1.25em;
+    }
+
+    .dial-btn {
+      background-color: #3b82f6;
+      color: white;
+      font-weight: bold;
+      padding: 0.5rem 0.75rem;
+      border-radius: 0.5rem;
+      margin: 0 0.25rem;
+      transition: background-color 0.2s, opacity 0.2s;
+      border: none;
+      cursor: pointer;
+      min-width: 40px;
+    }
+
+    .dial-btn:hover:not(:disabled) {
+      background-color: #2563eb;
+    }
+
+    .dial-btn:disabled {
+      background-color: #9ca3af;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+
+    .mode-btn {
+      background-color: #10b981;
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      margin: 0.25rem;
+      transition: background-color 0.2s;
+      border: none;
+      cursor: pointer;
+    }
+
+    .mode-btn:hover {
+      background-color: #059669;
+    }
+
+    .mode-btn.active {
+      background-color: #047857;
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    #confetti-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1000;
+      pointer-events: none;
+    }
+
+    .dial-control span {
+      /* For "じかん:" and "ふん:" labels */
+      min-width: 30px;
+      display: inline-block;
+      text-align: center;
+      font-size: 1.125rem;
+      font-weight: bold;
+    }
+
+    .problem-text {
+      font-size: 1.1rem;
+      margin-bottom: 0.75rem;
+      color: #1e293b;
+    }
+
+    .feedback {
+      font-size: 1.25rem;
+      font-weight: bold;
+      margin-top: 1rem;
+      min-height: 30px;
+    }
+
+    .correct {
+      color: #22c55e;
+    }
+
+    .incorrect {
+      color: #ef4444;
+    }
+
+    .action-button {
+      color: #1e293b;
+      font-weight: bold;
+      padding: 0.6rem 1.2rem;
+      border-radius: 0.5rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      /* shadow-md */
+      transition: transform 0.15s ease-in-out;
+      transform-origin: center;
+      display: inline-block;
+      /* Ensure transform works */
+      margin-top: 0.5rem;
+    }
+
+    .action-button:hover {
+      transform: scale(1.05);
+    }
+
+
+    @media (max-width: 480px) {
+      .app-container {
+        padding: 1rem;
+      }
+
+      .language-toggle-container {
+        top: 0.5rem;
+        right: 0.5rem;
+      }
+
+      .lang-toggle-btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.8rem;
+      }
+
+      .clock-canvas-container {
+        width: 150px;
+        height: 150px;
+      }
+
+      .time-display-text {
+        margin-top: 0.5rem;
+      }
+
+      .dial-btn {
+        padding: 0.4rem 0.6rem;
+      }
+
+      .mode-btn {
+        padding: 0.4rem 0.8rem;
+      }
+
+      h1 {
+        font-size: 1.5rem;
+      }
+
+      .problem-text {
+        font-size: 1rem;
+      }
+
+      .action-button {
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app-container">
+    <div class="language-toggle-container">
+      <button id="lang-toggle-button" class="lang-toggle-btn">漢</button>
+    </div>
+
+    <h1 id="app-title" class="text-3xl font-bold text-sky-600 mb-4">時計の差 トレーニング</h1>
+
+    <div id="mode-selector" class="mb-4">
+      <button id="mode-easy" class="mode-btn" data-lang-key="easy_mode">簡単</button>
+      <button id="mode-normal" class="mode-btn" data-lang-key="normal_mode">普通</button>
+      <button id="mode-master" class="mode-btn" data-lang-key="master_mode">達人</button>
+    </div>
+
+    <div class="problem-text" id="problem-statement">
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+      <div>
+        <div class="clock-canvas-container">
+          <canvas id="clock1-canvas" class="clock-canvas"></canvas>
+        </div>
+        <p id="clock1-time-display" class="time-display-text"></p>
+      </div>
+      <div>
+        <div class="clock-canvas-container">
+          <canvas id="clock2-canvas" class="clock-canvas"></canvas>
+        </div>
+        <p id="clock2-time-display" class="time-display-text"></p>
+      </div>
+    </div>
+
+    <div id="difference-input" class="mb-4">
+      <div class="dial-control flex items-center justify-center mb-2">
+        <span class="mr-2 text-lg text-slate-700" data-lang-key="time_label">時間:</span>
+        <button class="dial-btn" id="diff-hour-minus">-</button>
+        <span id="diff-hour-display" class="mx-2 text-xl font-bold text-sky-600">0</span>
+        <button class="dial-btn" id="diff-hour-plus">+</button>
+      </div>
+      <div class="dial-control flex items-center justify-center">
+        <span class="mr-2 text-lg text-slate-700" data-lang-key="minute_label">分:</span>
+        <button class="dial-btn" id="diff-min-minus">-</button>
+        <span id="diff-min-display" class="mx-2 text-xl font-bold text-sky-600">0</span>
+        <button class="dial-btn" id="diff-min-plus">+</button>
+      </div>
+    </div>
+
+    <button id="show-attempt-button" class="action-button bg-sky-400 hover:bg-sky-500"
+      data-lang-key="show_attempt_btn">針を重ねてみる</button>
+    <button id="check-button" class="action-button bg-yellow-400 hover:bg-yellow-500"
+      data-lang-key="check_answer_btn">答え合わせ！</button>
+
+    <div id="feedback" class="feedback"></div>
+  </div>
+
+  <canvas id="confetti-canvas"></canvas>
+
+  <script>
+    // DOM Elements
+    const clock1Canvas = document.getElementById('clock1-canvas');
+    const clock2Canvas = document.getElementById('clock2-canvas');
+    const clock1Ctx = clock1Canvas.getContext('2d');
+    const clock2Ctx = clock2Canvas.getContext('2d');
+
+    const clock1TimeDisplay = document.getElementById('clock1-time-display');
+    const clock2TimeDisplay = document.getElementById('clock2-time-display');
+    const problemStatementEl = document.getElementById('problem-statement');
+
+    const diffHourDisplay = document.getElementById('diff-hour-display');
+    const diffMinDisplay = document.getElementById('diff-min-display');
+
+    const btnHourPlus = document.getElementById('diff-hour-plus');
+    const btnHourMinus = document.getElementById('diff-hour-minus');
+    const btnMinPlus = document.getElementById('diff-min-plus');
+    const btnMinMinus = document.getElementById('diff-min-minus');
+
+    const showAttemptButton = document.getElementById('show-attempt-button');
+    const checkButton = document.getElementById('check-button');
+    const feedbackDiv = document.getElementById('feedback');
+
+    const modeEasyBtn = document.getElementById('mode-easy');
+    const modeNormalBtn = document.getElementById('mode-normal');
+    const modeMasterBtn = document.getElementById('mode-master');
+    const langToggleButton = document.getElementById('lang-toggle-button');
+    const appTitleEl = document.getElementById('app-title');
+
+
+    const confettiCanvas = document.getElementById('confetti-canvas');
+    const confettiCtx = confettiCanvas.getContext('2d');
+    let particles = [];
+    const confettiColors = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#3b82f6", "#8b5cf6", "#ec4899"];
+    let confettiAnimationId;
+
+    let currentMode = 'easy';
+    let currentLanguage = 'kanji'; // 'kanji' or 'hiragana'
+    let time1 = { h: 0, m: 0 };
+    let time2 = { h: 0, m: 0 };
+    let actualTotalDiffMinutes = 0;
+    let userDiff = { h: 0, m: 0 };
+    let showAttemptHands = false;
+
+    const CLOCK_SIZE = 180;
+    const CLOCK_SIZE_SM = 150;
+
+    const translations = {
+      kanji: {
+        app_title: "時計の差 トレーニング",
+        easy_mode: "簡単",
+        normal_mode: "普通",
+        master_mode: "達人",
+        problem_statement_format: "時計１は {time1} です。<br>時計２は {time2} です。<br>時計１から 時計２までは、<br>何時間 何分 進んでいますか？",
+        time_label: "時間:",
+        minute_label: "分:",
+        show_attempt_btn: "針を重ねてみる",
+        check_answer_btn: "答え合わせ！",
+        feedback_correct: "🎉 正解！ 🎉",
+        feedback_incorrect: "残念、もう一度！",
+        time_format: "{ampm}{h}時{m}分",
+        am: "午前",
+        pm: "午後",
+      },
+      hiragana: {
+        app_title: "とけい の さ とれーにんぐ",
+        easy_mode: "かんたん",
+        normal_mode: "ふつう",
+        master_mode: "たつじん",
+        problem_statement_format: "とけい１ は {time1} です。<br>とけい２ は {time2} です。<br>とけい１ から とけい２ までは、<br>なんじかん なんぷん すすんで いますか？",
+        time_label: "じかん：",
+        minute_label: "ふん：",
+        show_attempt_btn: "はり を かさねて みる",
+        check_answer_btn: "こたえ あわせ！",
+        feedback_correct: "🎉 せいかい！ 🎉",
+        feedback_incorrect: "ざんねん、 もう いちど！",
+        time_format: "{ampm}{h}じ {m}ふん",
+        am: "ごぜん",
+        pm: "ごご",
+      }
+    };
+
+    function setLanguage(lang) {
+      currentLanguage = lang;
+      langToggleButton.textContent = lang === 'kanji' ? 'ひ' : '漢';
+
+      document.querySelectorAll('[data-lang-key]').forEach(el => {
+        const key = el.dataset.langKey;
+        if (translations[lang][key]) {
+          el.textContent = translations[lang][key];
+        }
+      });
+      appTitleEl.textContent = translations[lang].app_title;
+      updateProblemStatementText();
+      updateDisplays();
+    }
+
+    langToggleButton.addEventListener('click', () => {
+      setLanguage(currentLanguage === 'kanji' ? 'hiragana' : 'kanji');
+    });
+
+    function updateProblemStatementText() {
+      let t1_h_24 = time1.h;
+      let t1_m = time1.m;
+      let t1_abs_min = t1_h_24 * 60 + t1_m;
+      let t2_abs_min = t1_abs_min + actualTotalDiffMinutes;
+      let t2_h_24 = Math.floor(t2_abs_min / 60);
+      let t2_m = t2_abs_min % 60;
+
+      const time1Str = formatTimeForDisplayAMPM(t1_h_24, t1_m, true);
+      const time2Str = formatTimeForDisplayAMPM(t2_h_24, t2_m, true);
+
+      problemStatementEl.innerHTML = translations[currentLanguage].problem_statement_format
+        .replace('{time1}', time1Str)
+        .replace('{time2}', time2Str);
+    }
+
+
+    function setCanvasSize() {
+      const size = window.innerWidth <= 480 ? CLOCK_SIZE_SM : CLOCK_SIZE;
+      [clock1Canvas, clock2Canvas].forEach(canvas => {
+        canvas.width = size; canvas.height = size;
+        canvas.parentElement.style.width = `${size}px`;
+        canvas.parentElement.style.height = `${size}px`;
+      });
+      if (time1.h !== undefined && time1.m !== undefined) {
+        updateDisplays();
+      }
+    }
+
+    window.addEventListener('resize', () => { resizeConfettiCanvas(); setCanvasSize(); });
+    resizeConfettiCanvas(); setCanvasSize();
+
+    function drawClock(ctx, canvas, hour, minute, handColor, hour2, minute2, hand2Color) {
+      const radius = canvas.height / 2 * 0.9; const centerX = canvas.width / 2; const centerY = canvas.height / 2;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.beginPath(); ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+      ctx.fillStyle = '#f8fafc'; ctx.fill();
+      ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = Math.max(1, radius * 0.02); ctx.stroke(); ctx.closePath();
+      ctx.beginPath(); ctx.arc(centerX, centerY, radius * 0.05, 0, 2 * Math.PI);
+      ctx.fillStyle = '#334155'; ctx.fill(); ctx.closePath();
+      for (let i = 0; i < 12; i++) {
+        const angle = (i * 30 - 90) * Math.PI / 180;
+        const x1 = centerX + radius * 0.85 * Math.cos(angle); const y1 = centerY + radius * 0.85 * Math.sin(angle);
+        const x2 = centerX + radius * 0.95 * Math.cos(angle); const y2 = centerY + radius * 0.95 * Math.sin(angle);
+        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+        ctx.lineWidth = (i % 3 === 0) ? Math.max(1, radius * 0.018) : Math.max(0.5, radius * 0.009);
+        ctx.strokeStyle = '#475569'; ctx.stroke(); ctx.closePath();
+      }
+      for (let i = 0; i < 60; i++) {
+        if (i % 5 === 0) continue;
+        const angle = (i * 6 - 90) * Math.PI / 180;
+        const x1 = centerX + radius * 0.9 * Math.cos(angle); const y1 = centerY + radius * 0.9 * Math.sin(angle);
+        const x2 = centerX + radius * 0.95 * Math.cos(angle); const y2 = centerY + radius * 0.95 * Math.sin(angle);
+        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+        ctx.lineWidth = Math.max(0.5, radius * 0.006); ctx.strokeStyle = '#64748b'; ctx.stroke(); ctx.closePath();
+      }
+      if (hour !== undefined && minute !== undefined) {
+        drawHand(ctx, centerX, centerY, radius, hour, minute, handColor || '#1e293b');
+      }
+      if (showAttemptHands && hour2 !== undefined && minute2 !== undefined) {
+        drawHand(ctx, centerX, centerY, radius, hour2, minute2, hand2Color || '#38bdf8', true);
+      }
+    }
+
+    function drawHand(ctx, cx, cy, r, h, m, color, isOverlay = false) {
+      let hourAngle = (((h % 12) + m / 60) * 30 - 90) * Math.PI / 180;
+      ctx.beginPath(); ctx.lineWidth = isOverlay ? Math.max(1.5, r * 0.06) : Math.max(2, r * 0.07);
+      ctx.lineCap = 'round'; ctx.strokeStyle = color; ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + r * 0.5 * Math.cos(hourAngle), cy + r * 0.5 * Math.sin(hourAngle)); ctx.stroke(); ctx.closePath();
+      let minuteAngle = (m * 6 - 90) * Math.PI / 180;
+      ctx.beginPath(); ctx.lineWidth = isOverlay ? Math.max(1, r * 0.04) : Math.max(1.5, r * 0.05);
+      ctx.lineCap = 'round'; ctx.strokeStyle = color; ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + r * 0.75 * Math.cos(minuteAngle), cy + r * 0.75 * Math.sin(minuteAngle)); ctx.stroke(); ctx.closePath();
+    }
+
+    function formatTimeForDisplayAMPM(hour_0_23, minute, forProblemStatement = false) {
+      const lang = translations[currentLanguage];
+      const ampmStr = hour_0_23 < 12 || hour_0_23 === 24 ? lang.am : lang.pm;
+      let displayH = hour_0_23 % 12;
+      if (displayH === 0) displayH = 12;
+
+      let minuteStr = minute.toString();
+      if (!forProblemStatement || currentLanguage === 'kanji') {
+        minuteStr = minute.toString().padStart(2, '0');
+      }
+
+      return lang.time_format
+        .replace('{ampm}', ampmStr)
+        .replace('{h}', displayH)
+        .replace('{m}', minuteStr);
+    }
+
+    function generateNewProblem() {
+      feedbackDiv.textContent = ''; feedbackDiv.className = 'feedback';
+      checkButton.disabled = false; showAttemptHands = false;
+      time1.h = Math.floor(Math.random() * 12); time1.m = 0;
+      let step = 1, maxHourDiff = 3;
+      if (currentMode === 'easy') { step = 15; maxHourDiff = 3; time1.m = Math.floor(Math.random() * 4) * 15; }
+      else if (currentMode === 'normal') { step = 5; maxHourDiff = 6; time1.m = Math.floor(Math.random() * 12) * 5; }
+      else { step = 1; maxHourDiff = 11; time1.m = Math.floor(Math.random() * 60); }
+      let minSteps = 1, maxStepsProb = Math.floor((maxHourDiff * 60) / step);
+      if (currentMode === 'master') { maxStepsProb = Math.floor((11 * 60 + 59) / step); }
+      maxStepsProb = Math.max(minSteps, maxStepsProb);
+      const numSteps = minSteps + Math.floor(Math.random() * (maxStepsProb - minSteps + 1));
+      actualTotalDiffMinutes = numSteps * step;
+      actualTotalDiffMinutes = Math.min(actualTotalDiffMinutes, 11 * 60 + 59);
+      let t1TotalMinsInternal = time1.h * 60 + time1.m;
+      let t2TotalMinsInternal = (t1TotalMinsInternal + actualTotalDiffMinutes) % (12 * 60);
+      time2.h = Math.floor(t2TotalMinsInternal / 60); time2.m = t2TotalMinsInternal % 60;
+      userDiff.h = 0; userDiff.m = 0;
+      updateProblemStatementText();
+      updateDisplays(); updateDialButtonsState();
+    }
+
+    function updateDisplays() {
+      let time1DisplayHourAMPM = time1.h;
+      clock1TimeDisplay.textContent = formatTimeForDisplayAMPM(time1DisplayHourAMPM, time1.m);
+      let time1AbsoluteMinutes = time1.h * 60 + time1.m;
+      let time2AbsoluteMinutes = time1AbsoluteMinutes + actualTotalDiffMinutes;
+      let time2HourOfDay = Math.floor(time2AbsoluteMinutes / 60);
+      let time2MinuteOfDay = time2AbsoluteMinutes % 60;
+      clock2TimeDisplay.textContent = formatTimeForDisplayAMPM(time2HourOfDay, time2MinuteOfDay);
+
+      diffHourDisplay.textContent = userDiff.h; diffMinDisplay.textContent = userDiff.m;
+      drawClock(clock1Ctx, clock1Canvas, time1.h, time1.m, '#1e293b');
+      const targetHourForHands = time2.h; const targetMinuteForHands = time2.m;
+      let userAttemptTotalMinutes = (time1.h * 60 + time1.m) + (userDiff.h * 60 + userDiff.m);
+      let userAttemptHourForHands = Math.floor(userAttemptTotalMinutes / 60) % 12;
+      let userAttemptMinuteForHands = userAttemptTotalMinutes % 60;
+      drawClock(clock2Ctx, clock2Canvas, targetHourForHands, targetMinuteForHands, '#1e293b', userAttemptHourForHands, userAttemptMinuteForHands, '#38bdf8');
+    }
+
+    // Helper function to get current maxUserDiffTotalMinutes based on actualTotalDiffMinutes
+    function getMaxUserDiffTotalMinutes() {
+      const actualDiffHours = Math.floor(actualTotalDiffMinutes / 60);
+      const maxAllowedUserHours = actualDiffHours + 2;
+      return Math.min(maxAllowedUserHours * 60 + 59, 11 * 60 + 59);
+    }
+
+    function updateDialButtonsState() {
+      const maxUserDiffTotalMinutes = getMaxUserDiffTotalMinutes();
+
+      // Hour buttons
+      btnHourMinus.disabled = userDiff.h === 0;
+      btnHourPlus.disabled = userDiff.h >= 11 || (userDiff.h + 1) * 60 + userDiff.m > maxUserDiffTotalMinutes;
+
+      // Minute buttons
+      const minuteStep = getMinuteStep();
+      const potentialNextMinuteValue = (userDiff.m + minuteStep) % 60;
+      // Disable btnMinPlus if current hour + next minute value exceeds max total allowed difference
+      btnMinPlus.disabled = (userDiff.h * 60 + potentialNextMinuteValue) > maxUserDiffTotalMinutes;
+
+      // Disable btnMinMinus if current total difference is 0h 0m
+      btnMinMinus.disabled = (userDiff.h === 0 && userDiff.m === 0);
+    }
+
+    function handleUserDiffChange() { updateDisplays(); updateDialButtonsState(); }
+    function getMinuteStep() { if (currentMode === 'easy') return 15; if (currentMode === 'normal') return 5; return 1; }
+
+    btnHourPlus.addEventListener('click', () => {
+      const maxUserDiffTotalMinutes = getMaxUserDiffTotalMinutes();
+      if (userDiff.h < 11 && (userDiff.h + 1) * 60 + userDiff.m <= maxUserDiffTotalMinutes) {
+        userDiff.h++;
+      }
+      handleUserDiffChange();
+    });
+    btnHourMinus.addEventListener('click', () => {
+      if (userDiff.h > 0) {
+        userDiff.h--;
+      }
+      handleUserDiffChange();
+    });
+
+    btnMinPlus.addEventListener('click', () => {
+      const step = getMinuteStep();
+      userDiff.m = (userDiff.m + step) % 60;
+      handleUserDiffChange();
+    });
+
+    btnMinMinus.addEventListener('click', () => {
+      const step = getMinuteStep();
+      userDiff.m = (userDiff.m - step + 60) % 60;
+      handleUserDiffChange();
+    });
+
+    showAttemptButton.addEventListener('mousedown', () => { showAttemptHands = true; updateDisplays(); });
+    showAttemptButton.addEventListener('mouseup', () => { showAttemptHands = false; updateDisplays(); });
+    showAttemptButton.addEventListener('mouseleave', () => { if (showAttemptHands) { showAttemptHands = false; updateDisplays(); } });
+    showAttemptButton.addEventListener('touchstart', (e) => { e.preventDefault(); showAttemptHands = true; updateDisplays(); });
+    showAttemptButton.addEventListener('touchend', (e) => { e.preventDefault(); showAttemptHands = false; updateDisplays(); });
+
+    checkButton.addEventListener('click', () => {
+      let userTotalDiffMinutes = userDiff.h * 60 + userDiff.m; showAttemptHands = true; updateDisplays();
+      const langFeedback = translations[currentLanguage];
+      if (userTotalDiffMinutes === actualTotalDiffMinutes) {
+        feedbackDiv.textContent = langFeedback.feedback_correct; feedbackDiv.className = 'feedback correct';
+        checkButton.disabled = true; showAttemptButton.disabled = true; launchConfetti();
+        setTimeout(() => { generateNewProblem(); checkButton.disabled = false; showAttemptButton.disabled = false; }, 2500);
+      } else {
+        feedbackDiv.textContent = langFeedback.feedback_incorrect; feedbackDiv.className = 'feedback incorrect';
+        setTimeout(() => { if (!checkButton.disabled) { showAttemptHands = false; updateDisplays(); } }, 1500);
+      }
+    });
+
+    function setActiveModeButton(mode) {
+      [modeEasyBtn, modeNormalBtn, modeMasterBtn].forEach(btn => btn.classList.remove('active'));
+      if (mode === 'easy') modeEasyBtn.classList.add('active');
+      else if (mode === 'normal') modeNormalBtn.classList.add('active');
+      else if (mode === 'master') modeMasterBtn.classList.add('active');
+    }
+    modeEasyBtn.addEventListener('click', () => { currentMode = 'easy'; setActiveModeButton('easy'); generateNewProblem(); });
+    modeNormalBtn.addEventListener('click', () => { currentMode = 'normal'; setActiveModeButton('normal'); generateNewProblem(); });
+    modeMasterBtn.addEventListener('click', () => { currentMode = 'master'; setActiveModeButton('master'); generateNewProblem(); });
+
+    function resizeConfettiCanvas() { confettiCanvas.width = window.innerWidth; confettiCanvas.height = window.innerHeight; }
+    function Particle(x, y, c) { this.x = x; this.y = y; this.color = c; this.r = Math.random() * 7 + 3; this.vx = Math.random() * 12 - 6; this.vy = Math.random() * -15 - 7; this.g = 0.25; this.o = 1; this.f = 0.008 + Math.random() * 0.01; this.a = Math.random() * Math.PI * 2; this.s = Math.random() * 0.04 - 0.02; this.sh = Math.random() > 0.5 ? 'rect' : 'circle'; }
+    Particle.prototype.update = function () { this.vy += this.g; this.x += this.vx; this.y += this.vy; this.o -= this.f; this.a += this.s; };
+    Particle.prototype.draw = function () { confettiCtx.save(); confettiCtx.globalAlpha = this.o; confettiCtx.fillStyle = this.color; confettiCtx.translate(this.x, this.y); confettiCtx.rotate(this.a); if (this.sh === 'rect') { confettiCtx.fillRect(-this.r / 2, -this.r / 2, this.r, this.r * 0.6); } else { confettiCtx.beginPath(); confettiCtx.arc(0, 0, this.r / 1.5, 0, Math.PI * 2); confettiCtx.fill(); } confettiCtx.restore(); };
+    function launchConfetti() { particles = []; const cx = confettiCanvas.width / 2; const cy = confettiCanvas.height * 0.7; for (let i = 0; i < 250; i++) { particles.push(new Particle(cx, cy, confettiColors[Math.floor(Math.random() * confettiColors.length)])); } if (!confettiAnimationId) animateConfetti(); }
+    function animateConfetti() { confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height); particles.forEach((p, i) => { p.update(); p.draw(); if (p.o <= 0 || p.y > confettiCanvas.height + p.r) particles.splice(i, 1); }); if (particles.length > 0) { confettiAnimationId = requestAnimationFrame(animateConfetti); } else { confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height); cancelAnimationFrame(confettiAnimationId); confettiAnimationId = null; } }
+
+    // Initial setup
+    setLanguage('kanji'); // Default to Kanji
+    setActiveModeButton('easy');
+    generateNewProblem();
+
+  </script>
+</body>
+
+</html>
